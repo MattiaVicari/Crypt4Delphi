@@ -1,0 +1,36 @@
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <PropertyGroup>
+        <ProjectGuid>{3E014242-871A-45E2-914F-ECB421105AF6}</ProjectGuid>
+    </PropertyGroup>
+    <ItemGroup>
+        <Projects Include="CNG\CNGTest.dproj">
+            <Dependencies/>
+        </Projects>
+    </ItemGroup>
+    <ProjectExtensions>
+        <Borland.Personality>Default.Personality.12</Borland.Personality>
+        <Borland.ProjectType/>
+        <BorlandProject>
+            <Default.Personality/>
+        </BorlandProject>
+    </ProjectExtensions>
+    <Target Name="CNGTest">
+        <MSBuild Projects="CNG\CNGTest.dproj"/>
+    </Target>
+    <Target Name="CNGTest:Clean">
+        <MSBuild Projects="CNG\CNGTest.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="CNGTest:Make">
+        <MSBuild Projects="CNG\CNGTest.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="Build">
+        <CallTarget Targets="CNGTest"/>
+    </Target>
+    <Target Name="Clean">
+        <CallTarget Targets="CNGTest:Clean"/>
+    </Target>
+    <Target Name="Make">
+        <CallTarget Targets="CNGTest:Make"/>
+    </Target>
+    <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
+</Project>
