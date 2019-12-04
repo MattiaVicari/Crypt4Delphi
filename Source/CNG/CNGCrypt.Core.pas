@@ -307,9 +307,12 @@ var
 begin
   FKey := THashSHA2.GetHashBytes(Password);
 
-  SetLength(FIV, Algorithm.BlockLen);
-  for I := Low(FIV) to High(FIV) do
-    FIV[I] := RandomRange(0, 255);
+  if FUseIVBlock then
+  begin
+    SetLength(FIV, Algorithm.BlockLen);
+    for I := Low(FIV) to High(FIV) do
+      FIV[I] := RandomRange(0, 255);
+  end;
 end;
 
 { TKeyInfo }
