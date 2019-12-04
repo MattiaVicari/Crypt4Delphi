@@ -2,3 +2,4 @@
 *.identcache
 *.dcu
 *.stat
+dunitx-results.xml
