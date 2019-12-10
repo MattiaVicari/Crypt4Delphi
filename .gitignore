@@ -3,3 +3,5 @@
 *.dcu
 *.stat
 dunitx-results.xml
+/Demos/02.CNG RNG/__history
+/Source/CNG/__history

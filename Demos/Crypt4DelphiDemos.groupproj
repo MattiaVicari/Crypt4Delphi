@@ -1,0 +1,48 @@
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <PropertyGroup>
+        <ProjectGuid>{360A9D08-F9FC-4834-AEA3-34EB944A0CF8}</ProjectGuid>
+    </PropertyGroup>
+    <ItemGroup>
+        <Projects Include="01.CNG AES\DemoCNGAES.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="02.CNG RNG\DemoCNGRNG.dproj">
+            <Dependencies/>
+        </Projects>
+    </ItemGroup>
+    <ProjectExtensions>
+        <Borland.Personality>Default.Personality.12</Borland.Personality>
+        <Borland.ProjectType/>
+        <BorlandProject>
+            <Default.Personality/>
+        </BorlandProject>
+    </ProjectExtensions>
+    <Target Name="DemoCNGAES">
+        <MSBuild Projects="01.CNG AES\DemoCNGAES.dproj"/>
+    </Target>
+    <Target Name="DemoCNGAES:Clean">
+        <MSBuild Projects="01.CNG AES\DemoCNGAES.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="DemoCNGAES:Make">
+        <MSBuild Projects="01.CNG AES\DemoCNGAES.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="DemoCNGRNG">
+        <MSBuild Projects="02.CNG RNG\DemoCNGRNG.dproj"/>
+    </Target>
+    <Target Name="DemoCNGRNG:Clean">
+        <MSBuild Projects="02.CNG RNG\DemoCNGRNG.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="DemoCNGRNG:Make">
+        <MSBuild Projects="02.CNG RNG\DemoCNGRNG.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="Build">
+        <CallTarget Targets="DemoCNGAES;DemoCNGRNG"/>
+    </Target>
+    <Target Name="Clean">
+        <CallTarget Targets="DemoCNGAES:Clean;DemoCNGRNG:Clean"/>
+    </Target>
+    <Target Name="Make">
+        <CallTarget Targets="DemoCNGAES:Make;DemoCNGRNG:Make"/>
+    </Target>
+    <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
+</Project>
