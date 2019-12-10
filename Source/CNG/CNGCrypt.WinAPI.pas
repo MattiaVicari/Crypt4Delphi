@@ -23,7 +23,9 @@ uses
   WinApi.Windows;
 
 const
+  // https://docs.microsoft.com/it-it/windows/win32/seccng/cng-algorithm-identifiers
   BCRYPT_AES_ALGORITHM = 'AES';
+  BCRYPT_RNG_ALGORITHM = 'RNG';
 
   // https://docs.microsoft.com/en-us/windows/win32/seccng/cng-property-identifiers
   BCRYPT_OBJECT_LENGTH = 'ObjectLength';
@@ -110,6 +112,13 @@ function BCryptDecrypt(
   pbOutput: Pointer;
   cbOutput: ULONG;
   var pcbResult: ULONG;
+  dwFlags: ULONG
+): Integer; stdcall; external 'Bcrypt.dll';
+
+function BCryptGenRandom(
+  phAlgorithm: Pointer;
+  pbBuffer: Pointer;
+  cbBuffer: ULONG;
   dwFlags: ULONG
 ): Integer; stdcall; external 'Bcrypt.dll';
 
