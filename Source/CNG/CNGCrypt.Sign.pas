@@ -21,7 +21,9 @@ interface
 
 uses
   Winapi.Windows, System.Classes, Winapi.Messages,
-  System.SysUtils, System.Hash;
+  System.SysUtils, System.Hash,
+
+  CNGCrypt.CAPI;
 
 type
   TRSAAlgorithm = class(TObject)
@@ -42,6 +44,7 @@ type
     FAlgorithm: TRSAAlgorithm;
     FPrivateKey: Boolean;
     procedure CreateAsymmetricKey(AAlgorithm: Pointer; const AKey: TBytes);
+    function GetCAPIPrivateKeyBlobStruct(AKeyBlob: TBytes; AKeyBlobSize: DWORD): PRIVATEKEYBLOB;
   public
     property HKey: Pointer read FHKey;
 
@@ -63,7 +66,7 @@ implementation
 
 uses
   CNGCrypt.WinAPI,
-  CNGCrypt.CAPI;
+  CNGCrypt.Utils;
 
 procedure MoveReverse(const Source; var Dest; Count: NativeInt);
 var
@@ -204,14 +207,56 @@ begin
   inherited;
 end;
 
+function TRSAKeyInfo.GetCAPIPrivateKeyBlobStruct(AKeyBlob: TBytes; AKeyBlobSize: DWORD): PRIVATEKEYBLOB;
+var
+  Cursor: DWORD;
+begin
+  Cursor := 0;
+  Move(AKeyBlob[Cursor], Result, SizeOf(Result.PublicKeyStruc) + SizeOf(Result.RSAPubKey));
+  Inc(Cursor, SizeOf(Result.PublicKeyStruc) + SizeOf(Result.RSAPubKey));
+
+  SetLength(Result.Modulus, Result.RSAPubKey.Bitlen div 8);
+  Move(AKeyBlob[Cursor], Result.Modulus[0], Length(Result.Modulus));
+  Inc(Cursor, Length(Result.Modulus));
+
+  SetLength(Result.Prime1, Result.RSAPubKey.Bitlen div 16);
+  Move(AKeyBlob[Cursor], Result.Prime1[0], Length(Result.Prime1));
+  Inc(Cursor, Length(Result.Prime1));
+
+  SetLength(Result.Prime2, Result.RSAPubKey.Bitlen div 16);
+  Move(AKeyBlob[Cursor], Result.Prime2[0], Length(Result.Prime2));
+  Inc(Cursor, Length(Result.Prime2));
+
+  SetLength(Result.Exponent1, Result.RSAPubKey.Bitlen div 16);
+  Move(AKeyBlob[Cursor], Result.Exponent1[0], Length(Result.Exponent1));
+  Inc(Cursor, Length(Result.Exponent1));
+
+  SetLength(Result.Exponent2, Result.RSAPubKey.Bitlen div 16);
+  Move(AKeyBlob[Cursor], Result.Exponent2[0], Length(Result.Exponent2));
+  Inc(Cursor, Length(Result.Exponent2));
+
+  SetLength(Result.Coefficient, Result.RSAPubKey.Bitlen div 16);
+  Move(AKeyBlob[Cursor], Result.Coefficient[0], Length(Result.Coefficient));
+  Inc(Cursor, Length(Result.Coefficient));
+
+  SetLength(Result.PrivateExponent, Result.RSAPubKey.Bitlen div 8);
+  Move(AKeyBlob[Cursor], Result.PrivateExponent[0], Length(Result.PrivateExponent));
+  Inc(Cursor, Length(Result.PrivateExponent));
+  if Cursor <> AKeyBlobSize then
+    raise Exception.Create('Mismatch bewteen the Key blob size and Private key structure size');
+end;
+
 procedure TRSAKeyInfo.CreateAsymmetricKey(AAlgorithm: Pointer; const AKey: TBytes);
 var
   Status: Integer;
-  BlobBuffer, KeyBlob: TBytes;
-  CbPrivateKeySize, CbKeyBlobSize: DWORD;
+  BlobBuffer, KeyBlob, RSAKeyBlobBuffer: TBytes;
+  CbPrivateKeySize, CbKeyBlobSize, CbRSAKeyBlobBufferSize: DWORD;
   CbSkip: DWORD;
   CbFlags: DWORD;
+  RSACursor: DWORD;
   PrivateKeyString: PWideChar;
+  PKKeyBlobStruct: PRIVATEKEYBLOB;
+  RSAKeyBlob: BCRYPT_RSAKEY_BLOB;
 begin
   // I have to use the CryptoAPI to load the Private Key from PEM
   PrivateKeyString := PWideChar(TEncoding.UTF8.GetString(AKey));
@@ -259,13 +304,84 @@ begin
   if Status <> 1 then
     raise Exception.Create('CryptDecodeObjectEx error: ' + IntToStr(Status));
 
+  PKKeyBlobStruct := GetCAPIPrivateKeyBlobStruct(KeyBlob, CbKeyBlobSize);
+  RSAKeyBlob.BitLength := PKKeyBlobStruct.RSAPubKey.Bitlen;
+  RSAKeyBlob.Magic := PKKeyBlobStruct.RSAPubKey.Magic;
+  RSAKeyBlob.cbPublicExp := SizeOf(PKKeyBlobStruct.RSAPubKey.PubExp);
+  RSAKeyBlob.cbModulus :=  Length(PKKeyBlobStruct.Modulus);
+  RSAKeyBlob.cbPrime1 := Length(PKKeyBlobStruct.Prime1);
+  RSAKeyBlob.cbPrime2 := Length(PKKeyBlobStruct.Prime2);
+
+  RSACursor := 0;
+  CbRSAKeyBlobBufferSize := SizeOf(RSAKeyBlob) + RSAKeyBlob.cbPublicExp + RSAKeyBlob.cbModulus;
+  if (RSAKeyBlob.cbPrime1 > 0) and (Length(PKKeyBlobStruct.Prime1) > 0) then
+    Inc(CbRSAKeyBlobBufferSize, RSAKeyBlob.cbPrime1);
+  if (RSAKeyBlob.cbPrime2 > 0) and (Length(PKKeyBlobStruct.Prime2) > 0) then
+    Inc(CbRSAKeyBlobBufferSize, RSAKeyBlob.cbPrime2);
+  if (RSAKeyBlob.cbPrime1 > 0) and (Length(PKKeyBlobStruct.Exponent1) > 0) then
+    Inc(CbRSAKeyBlobBufferSize, RSAKeyBlob.cbPrime1);
+  if (RSAKeyBlob.cbPrime2 > 0) and (Length(PKKeyBlobStruct.Exponent2) > 0) then
+    Inc(CbRSAKeyBlobBufferSize, RSAKeyBlob.cbPrime2);
+  if (RSAKeyBlob.cbPrime1 > 0) and (Length(PKKeyBlobStruct.Coefficient) > 0) then
+    Inc(CbRSAKeyBlobBufferSize, RSAKeyBlob.cbPrime1);
+  if Length(PKKeyBlobStruct.PrivateExponent) > 0 then
+    Inc(CbRSAKeyBlobBufferSize, RSAKeyBlob.cbModulus);
+  SetLength(RSAKeyBlobBuffer, CbRSAKeyBlobBufferSize);
+
+  Move(RSAKeyBlob, RSAKeyBlobBuffer[RSACursor], SizeOf(RSAKeyBlob));
+  Inc(RSACursor, SizeOf(RSAKeyBlob));
+
+  Move(PKKeyBlobStruct.RSAPubKey.PubExp, RSAKeyBlobBuffer[RSACursor], RSAKeyBlob.cbPublicExp);
+  Inc(RSACursor, RSAKeyBlob.cbPublicExp);
+
+  Move(PKKeyBlobStruct.Modulus[0], RSAKeyBlobBuffer[RSACursor], RSAKeyBlob.cbModulus);
+  Inc(RSACursor, RSAKeyBlob.cbModulus);
+
+  if (RSAKeyBlob.cbPrime1 > 0) and (Length(PKKeyBlobStruct.Prime1) > 0) then
+  begin
+    Move(PKKeyBlobStruct.Prime1[0], RSAKeyBlobBuffer[RSACursor], RSAKeyBlob.cbPrime1);
+    Inc(RSACursor, RSAKeyBlob.cbPrime1);
+  end;
+  if (RSAKeyBlob.cbPrime2 > 0) and (Length(PKKeyBlobStruct.Prime2) > 0) then
+  begin
+    Move(PKKeyBlobStruct.Prime2[0], RSAKeyBlobBuffer[RSACursor], RSAKeyBlob.cbPrime2);
+    Inc(RSACursor, RSAKeyBlob.cbPrime2);
+  end;
+
+  if (RSAKeyBlob.cbPrime1 > 0) and (Length(PKKeyBlobStruct.Exponent1) > 0) then
+  begin
+    Move(PKKeyBlobStruct.Exponent1[0], RSAKeyBlobBuffer[RSACursor], RSAKeyBlob.cbPrime1);
+    Inc(RSACursor, RSAKeyBlob.cbPrime1);
+  end;
+  if (RSAKeyBlob.cbPrime2 > 0) and (Length(PKKeyBlobStruct.Exponent2) > 0) then
+  begin
+    Move(PKKeyBlobStruct.Exponent2[0], RSAKeyBlobBuffer[RSACursor], RSAKeyBlob.cbPrime2);
+    Inc(RSACursor, RSAKeyBlob.cbPrime2);
+  end;
+
+  if (RSAKeyBlob.cbPrime1 > 0) and (Length(PKKeyBlobStruct.Coefficient) > 0) then
+  begin
+    Move(PKKeyBlobStruct.Coefficient[0], RSAKeyBlobBuffer[RSACursor], RSAKeyBlob.cbPrime1);
+    Inc(RSACursor, RSAKeyBlob.cbPrime1);
+  end;
+
+  if Length(PKKeyBlobStruct.PrivateExponent) > 0 then
+  begin
+    Move(PKKeyBlobStruct.PrivateExponent[0], RSAKeyBlobBuffer[RSACursor], RSAKeyBlob.cbModulus);
+    Inc(RSACursor, RSAKeyBlob.cbModulus);
+  end;
+
+  if RSACursor <> CbRSAKeyBlobBufferSize then
+    raise Exception.Create('Mismatch between the size of the blob to import and the destination blob buffer');  
+
+
   // Import the key in order to use it to sign.
   Status := BCryptImportKeyPair(AAlgorithm,
                                 nil,
-                                BCRYPT_RSAPRIVATE_BLOB,
+                                BCRYPT_RSAFULLPRIVATE_BLOB,
                                 FHKey,
-                                KeyBlob,
-                                CbKeyBlobSize,
+                                RSAKeyBlobBuffer,
+                                CbRSAKeyBlobBufferSize,
                                 0);
   if not Succeeded(Status) then
     raise Exception.Create('BCryptImportKeyPair error: ' + IntToStr(Status));

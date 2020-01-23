@@ -20,6 +20,7 @@ unit CNGCrypt.CAPI;
 interface
 
 uses
+  System.SysUtils,
   WinApi.Windows;
 
 const
@@ -58,6 +59,35 @@ const
   PKCS_RSA_PRIVATE_KEY             = PChar(43);
   PKCS_PRIVATE_KEY_INFO            = PChar(44);
   PKCS_ENCRYPTED_PRIVATE_KEY_INFO  = PChar(45);
+
+type
+  // https://docs.microsoft.com/en-us/windows/win32/api/wincrypt/ns-wincrypt-publickeystruc
+  BLOBHEADER = record
+    BType: Byte;
+    BVersion: Byte;
+    Reserved: Word;
+    AIKeyAlg: DWORD;
+  end;
+
+  // https://docs.microsoft.com/en-us/windows/win32/api/wincrypt/ns-wincrypt-rsapubkey
+  RSAPUBKEY = record
+    Magic: DWORD;
+    Bitlen: DWORD;
+    PubExp: DWORD;
+  end;
+
+  // https://docs.microsoft.com/en-us/windows/win32/seccrypto/base-provider-key-blobs
+  PRIVATEKEYBLOB = record
+    PublicKeyStruc: BLOBHEADER;
+    RSAPubKey: RSAPUBKEY;
+    Modulus: TBytes;
+    Prime1: TBytes;
+    Prime2: TBytes;
+    Exponent1: TBytes;
+    Exponent2: TBytes;
+    Coefficient: TBytes;
+    PrivateExponent: TBytes;
+  end;
 
 function CryptStringToBinaryW(
   pszString: PWideChar;
