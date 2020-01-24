@@ -70,6 +70,8 @@ const
   BCRYPT_RSAPRIVATE_MAGIC = $32415352;      // RSA2
   BCRYPT_RSAFULLPRIVATE_MAGIC = $33415352;  // RSA3
 
+  BCRYPT_NO_KEY_VALIDATION = $00000008;
+
   // Microsoft built-in providers.
   MS_PRIMITIVE_PROVIDER       = 'Microsoft Primitive Provider';
   MS_PLATFORM_CRYPTO_PROVIDER = '"Microsoft Platform Crypto Provider';
@@ -80,13 +82,13 @@ type
   end;
 
   // https://docs.microsoft.com/it-it/windows/win32/api/bcrypt/ns-bcrypt-bcrypt_rsakey_blob
-  BCRYPT_RSAKEY_BLOB = record
+  BCRYPT_RSAKEY_BLOB = packed record
     Magic: ULONG;
     BitLength: ULONG;
-    cbPublicExp: ULONG;
-    cbModulus: ULONG;
-    cbPrime1: ULONG;
-    cbPrime2: ULONG;
+    CbPublicExp: ULONG;
+    CbModulus: ULONG;
+    CbPrime1: ULONG;
+    CbPrime2: ULONG;
   end;
 
 
@@ -193,7 +195,7 @@ function BCryptImportKeyPair(
   hAlgorithm: Pointer;
   hImportKey: Pointer;
   pszBlobType: PWideChar;
-  phKey: Pointer;
+  var phKey: Pointer;
   pbInput: Pointer;
   cbInput: ULONG;
   dwFlags: ULONG
