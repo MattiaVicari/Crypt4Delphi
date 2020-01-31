@@ -56,9 +56,10 @@ const
   PKCS_7_NDR_ENCODING  = $00020000;
 
   // Data structures for private keys
-  PKCS_RSA_PRIVATE_KEY             = PChar(43);
-  PKCS_PRIVATE_KEY_INFO            = PChar(44);
-  PKCS_ENCRYPTED_PRIVATE_KEY_INFO  = PChar(45);
+  PKCS_RSA_PRIVATE_KEY            = PChar(43);
+  PKCS_PRIVATE_KEY_INFO           = PChar(44);
+  PKCS_ENCRYPTED_PRIVATE_KEY_INFO = PChar(45);
+  RSA_CSP_PUBLICKEYBLOB           = PChar(19);
 
 type
   // https://docs.microsoft.com/en-us/windows/win32/api/wincrypt/ns-wincrypt-publickeystruc
@@ -87,6 +88,12 @@ type
     Exponent2: TBytes;
     Coefficient: TBytes;
     PrivateExponent: TBytes;
+  end;
+
+  PUBLICKEYBLOB = record
+    PublicKeyStruc: BLOBHEADER;
+    RSAPubKey: RSAPUBKEY;
+    Modulus: TBytes;
   end;
 
 function CryptStringToBinaryW(

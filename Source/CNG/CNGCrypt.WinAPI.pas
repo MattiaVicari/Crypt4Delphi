@@ -24,9 +24,9 @@ uses
 
 const
   // https://docs.microsoft.com/it-it/windows/win32/seccng/cng-algorithm-identifiers
-  BCRYPT_AES_ALGORITHM = 'AES';
-  BCRYPT_RNG_ALGORITHM = 'RNG';
-  BCRYPT_RSA_ALGORITHM = 'RSA';
+  BCRYPT_AES_ALGORITHM    = 'AES';
+  BCRYPT_RNG_ALGORITHM    = 'RNG';
+  BCRYPT_RSA_ALGORITHM    = 'RSA';
   BCRYPT_SHA256_ALGORITHM = 'SHA256';
 
   BCRYPT_PAD_NONE  = $00000001;
@@ -35,16 +35,16 @@ const
   BCRYPT_PAD_PSS   = $00000008;  // BCryptSignHash/VerifySignature
 
   // https://docs.microsoft.com/en-us/windows/win32/seccng/cng-property-identifiers
-  BCRYPT_OBJECT_LENGTH = 'ObjectLength';
-  BCRYPT_BLOCK_LENGTH = 'BlockLength';
+  BCRYPT_OBJECT_LENGTH  = 'ObjectLength';
+  BCRYPT_BLOCK_LENGTH   = 'BlockLength';
 
-  BCRYPT_CHAINING_MODE = 'ChainingMode';
+  BCRYPT_CHAINING_MODE  = 'ChainingMode';
   BCRYPT_CHAIN_MODE_CBC = 'ChainingModeCBC';
   BCRYPT_CHAIN_MODE_CCM = 'ChainingModeCCM';
   BCRYPT_CHAIN_MODE_CFB = 'ChainingModeCFB';
   BCRYPT_CHAIN_MODE_ECB = 'ChainingModeECB';
   BCRYPT_CHAIN_MODE_GCM = 'ChainingModeGCM';
-  BCRYPT_CHAIN_MODE_NA = 'ChainingModeN/A';
+  BCRYPT_CHAIN_MODE_NA  = 'ChainingModeN/A';
 
   // See https://docs.microsoft.com/en-us/windows/win32/api/bcrypt/nf-bcrypt-bcryptexportkey
   BCRYPT_OPAQUE_KEY_BLOB = 'OpaqueKeyBlob';
@@ -60,21 +60,28 @@ const
   // Modulus
   // Prime1
   // Prime2
-  BCRYPT_RSAPUBLIC_BLOB  = 'RSAPUBLICBLOB';
-  BCRYPT_RSAPRIVATE_BLOB = 'RSAPRIVATEBLOB';
-  BCRYPT_RSAFULLPRIVATE_BLOB = 'RSAFULLPRIVATEBLOB';
-  LEGACY_RSAPUBLIC_BLOB  = 'CAPIPUBLICBLOB';
-  LEGACY_RSAPRIVATE_BLOB = 'CAPIPRIVATEBLOB';
+  BCRYPT_RSAPUBLIC_BLOB       = 'RSAPUBLICBLOB';
+  BCRYPT_RSAPRIVATE_BLOB      = 'RSAPRIVATEBLOB';
+  BCRYPT_RSAFULLPRIVATE_BLOB  = 'RSAFULLPRIVATEBLOB';
+  LEGACY_RSAPUBLIC_BLOB       = 'CAPIPUBLICBLOB';
+  LEGACY_RSAPRIVATE_BLOB      = 'CAPIPRIVATEBLOB';
 
-  BCRYPT_RSAPUBLIC_MAGIC  = $31415352;      // RSA1
-  BCRYPT_RSAPRIVATE_MAGIC = $32415352;      // RSA2
+  BCRYPT_RSAPUBLIC_MAGIC      = $31415352;  // RSA1
+  BCRYPT_RSAPRIVATE_MAGIC     = $32415352;  // RSA2
   BCRYPT_RSAFULLPRIVATE_MAGIC = $33415352;  // RSA3
 
-  BCRYPT_NO_KEY_VALIDATION = $00000008;
+  BCRYPT_NO_KEY_VALIDATION    = $00000008;
 
   // Microsoft built-in providers.
   MS_PRIMITIVE_PROVIDER       = 'Microsoft Primitive Provider';
-  MS_PLATFORM_CRYPTO_PROVIDER = '"Microsoft Platform Crypto Provider';
+  MS_PLATFORM_CRYPTO_PROVIDER = 'Microsoft Platform Crypto Provider';
+
+  // ntstatus.h
+  // https://docs.microsoft.com/it-it/windows/win32/api/bcrypt/nf-bcrypt-bcryptverifysignature
+  STATUS_SUCCESS            = $00000000;
+  STATUS_INVALID_SIGNATURE  = $C000A000;
+  STATUS_INVALID_HANDLE     = $C0000008;    // winnt
+  STATUS_NOT_SUPPORTED      = $C00000BB;
 
 type
   BCRYPT_PKCS1_PADDING_INFO = packed record
@@ -97,12 +104,12 @@ function BCryptOpenAlgorithmProvider(
   pszAlgId: PWideChar;
   pszImplementation: PWideChar;
   dwFlags: ULONG
-): Integer; stdcall; external 'Bcrypt.dll';
+): DWORD; stdcall; external 'Bcrypt.dll';
 
 function BCryptCloseAlgorithmProvider(
   hAlgorithm: Pointer;
   dwFlags: ULONG
-): Integer; stdcall; external 'Bcrypt.dll';
+): DWORD; stdcall; external 'Bcrypt.dll';
 
 function BCryptGetProperty(
   hObject: Pointer;
@@ -111,7 +118,7 @@ function BCryptGetProperty(
   cbOutput: ULONG;
   var pcbResult: ULONG;
   dwFlagd: ULONG
-): Integer; stdcall; external 'Bcrypt.dll';
+): DWORD; stdcall; external 'Bcrypt.dll';
 
 function BCryptSetProperty(
   hObject: Pointer;
@@ -119,7 +126,7 @@ function BCryptSetProperty(
   pbInput: PWideChar;
   cbInput: ULONG;
   dwFlags: ULONG
-): Integer; stdcall; external 'Bcrypt.dll';
+): DWORD; stdcall; external 'Bcrypt.dll';
 
 function BCryptGenerateSymmetricKey(
   hAlgorithm: Pointer;
@@ -129,11 +136,11 @@ function BCryptGenerateSymmetricKey(
   pbSecret: Pointer;
   cbSecret: ULONG;
   dwFlags: ULONG
-): Integer; stdcall; external 'Bcrypt.dll';
+): DWORD; stdcall; external 'Bcrypt.dll';
 
 function BCryptDestroyKey(
   hKey: Pointer
-): Integer; stdcall; external 'Bcrypt.dll';
+): DWORD; stdcall; external 'Bcrypt.dll';
 
 function BCryptEncrypt(
   hKey: Pointer;
@@ -146,7 +153,7 @@ function BCryptEncrypt(
   cbOutput: ULONG;
   var pcbResult: ULONG;
   dwFlags: ULONG
-): Integer; stdcall; external 'Bcrypt.dll';
+): DWORD; stdcall; external 'Bcrypt.dll';
 
 function BCryptDecrypt(
   hKey: Pointer;
@@ -159,14 +166,14 @@ function BCryptDecrypt(
   cbOutput: ULONG;
   var pcbResult: ULONG;
   dwFlags: ULONG
-): Integer; stdcall; external 'Bcrypt.dll';
+): DWORD; stdcall; external 'Bcrypt.dll';
 
 function BCryptGenRandom(
   phAlgorithm: Pointer;
   pbBuffer: Pointer;
   cbBuffer: ULONG;
   dwFlags: ULONG
-): Integer; stdcall; external 'Bcrypt.dll';
+): DWORD; stdcall; external 'Bcrypt.dll';
 
 function BCryptSignHash(
   hKey: Pointer;
@@ -177,19 +184,29 @@ function BCryptSignHash(
   cbOutput: ULONG;
   var pcbResult: ULONG;
   dwFlags: ULONG
-): Integer; stdcall; external 'Bcrypt.dll';
+): DWORD; stdcall; external 'Bcrypt.dll';
+
+function BCryptVerifySignature(
+  hKey: Pointer;
+  pPaddingInfo: Pointer;
+  pbHash: Pointer;
+  cbHash: ULONG;
+  pbSignature: Pointer;
+  cbSignature: ULONG;
+  dwFlags: ULONG
+): DWORD; stdcall; external 'Bcrypt.dll';
 
 function BCryptGenerateKeyPair(
   hAlgorithm: Pointer;
   var phKey: Pointer;
   dwLength: ULONG;
   dwFlags: ULONG
-): Integer; stdcall; external 'Bcrypt.dll';
+): DWORD; stdcall; external 'Bcrypt.dll';
 
 function BCryptFinalizeKeyPair(
   hKey: Pointer;
   dwFlags: ULONG
-): Integer; stdcall; external 'Bcrypt.dll';
+): DWORD; stdcall; external 'Bcrypt.dll';
 
 function BCryptImportKeyPair(
   hAlgorithm: Pointer;
@@ -199,7 +216,7 @@ function BCryptImportKeyPair(
   pbInput: Pointer;
   cbInput: ULONG;
   dwFlags: ULONG
-): Integer; stdcall; external 'Bcrypt.dll';
+): DWORD; stdcall; external 'Bcrypt.dll';
 
 implementation
 

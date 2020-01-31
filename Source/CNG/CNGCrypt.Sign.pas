@@ -46,11 +46,16 @@ type
     FHKey: Pointer;
     FAlgorithm: TRSAAlgorithm;
     FPrivateKey: Boolean;
-    procedure CreateAsymmetricKey(AAlgorithm: Pointer; const AKey: TBytes);
+    procedure CreatePrivateKey(AAlgorithm: Pointer; const AKey: TBytes);
+    procedure CreatePublicKey(AAlgorithm: Pointer; const AKey: TBytes);
+    procedure LoadKeyFromPEM(AAlgorithm: Pointer; const AKey: TBytes;
+        var AKeyBlob: TBytes; var ACbKeyBlobSize: DWORD);
     function GetCAPIPrivateKeyBlobStruct(AKeyBlob: TBytes; AKeyBlobSize: DWORD): PRIVATEKEYBLOB;
+    function GetCAPIPublicKeyBlobStruct(AKeyBlob: TBytes; AKeyBlobSize: DWORD): PUBLICKEYBLOB;
     function GetCNGKeyBlob(const AKeyBlob: PRIVATEKEYBLOB; var ACbRSAKeyBlobBufferSize: DWORD; AKeyType: TRSAKeyType): TBytes;
   public
     property HKey: Pointer read FHKey;
+    property PrivateKey: Boolean read FPrivateKey;
 
     constructor Create(AAlgorithm: TRSAAlgorithm; const AKey: TBytes; APrivateKey: Boolean);
     destructor Destroy; override;
@@ -62,8 +67,8 @@ type
     procedure Sign(Data, SignedData: TStream; PrivateKey: TBytes); overload;
     procedure Sign(Data: TBytes; var SignedData: TBytes; PrivateKey: TBytes); overload;
 
-    function Verify(SignedData: TStream; PublicKey: TBytes): Boolean; overload;
-    function Verify(SignedData, PublicKey: TBytes): Boolean; overload;
+    function Verify(Data, Signature: TStream; PublicKey: TBytes): Boolean; overload;
+    function Verify(Data, Signature, PublicKey: TBytes): Boolean; overload;
   end;
 
 implementation
@@ -81,11 +86,17 @@ begin
   end;
 end;
 
+procedure CopyAndAdvance(const ASourceBuffer: TBytes; var ADestBuffer; var ACursor: DWORD; ASize: DWORD);
+begin
+  Move(ASourceBuffer[ACursor], ADestBuffer, ASize);
+  Inc(ACursor, ASize);
+end;
+
 { TRSAAlgorithm }
 
 constructor TRSAAlgorithm.Create;
 var
-  Status: Integer;
+  Status: DWORD;
 begin
   Status := BCryptOpenAlgorithmProvider(FHRsaAlg, PChar(BCRYPT_RSA_ALGORITHM), nil, 0);
   if not Succeeded(Status) then
@@ -118,7 +129,7 @@ end;
 
 procedure TCNGSign.Sign(Data: TBytes; var SignedData: TBytes; PrivateKey: TBytes);
 var
-  Status: Integer;
+  Status: DWORD;
   HashData: TBytes;
   DataStream: TMemoryStream;
   RsaAlg: TRSAAlgorithm;
@@ -173,20 +184,64 @@ begin
   end;
 end;
 
-function TCNGSign.Verify(SignedData: TStream; PublicKey: TBytes): Boolean;
+function TCNGSign.Verify(Data, Signature: TStream; PublicKey: TBytes): Boolean;
 var
-  InputBuffer: TBytes;
+  SignatureBuffer, DataBuffer: TBytes;
 begin
-  SetLength(InputBuffer, SignedData.Size);
-  SignedData.Position := 0;
-  SignedData.Read(InputBuffer[0], SignedData.Size);
-  Result := Verify(InputBuffer, PublicKey);
+  SetLength(DataBuffer, Data.Size);
+  SetLength(SignatureBuffer, Signature.Size);
+
+  Signature.Position := 0;
+  Signature.Read(SignatureBuffer[0], Signature.Size);
+  Data.Position := 0;
+  Data.Read(DataBuffer[0], Data.Size);
+
+  Result := Verify(DataBuffer, SignatureBuffer, PublicKey);
 end;
 
-function TCNGSign.Verify(SignedData, PublicKey: TBytes): Boolean;
+function TCNGSign.Verify(Data, Signature, PublicKey: TBytes): Boolean;
+var
+  Status: DWORD;
+  HashData: TBytes;
+  DataStream: TMemoryStream;
+  RsaAlg: TRSAAlgorithm;
+  RsaKey: TRSAKeyInfo;
+  PaddingInfo: BCRYPT_PKCS1_PADDING_INFO;
 begin
-  Result := False;
-  // TODO
+  DataStream := TMemoryStream.Create;
+  try
+    DataStream.WriteBuffer(Data[0], Length(Data));
+    HashData := THashSHA2.GetHashBytes(DataStream);
+  finally
+    DataStream.Free;
+  end;
+
+  RsaAlg := TRSAAlgorithm.Create;
+  try
+    RsaKey := TRSAKeyInfo.Create(RsaAlg, PublicKey, False);
+    try
+      // Use the SHA256 algorithm to create padding information.
+      PaddingInfo.pszAlgId := BCRYPT_SHA256_ALGORITHM;
+
+      Status := BCryptVerifySignature(RsaKey.HKey,
+                                      @PaddingInfo,
+                                      @HashData[0],
+                                      Length(HashData),
+                                      @Signature[0],
+                                      Length(Signature),
+                                      BCRYPT_PAD_PKCS1);
+      case Status of
+        STATUS_SUCCESS: Result := True;
+        STATUS_INVALID_SIGNATURE: Result := False;
+      else
+        raise Exception.Create('BCryptVerifySignature error: ' + IntToStr(Status));
+      end;
+    finally
+      RsaKey.Free;
+    end;
+  finally
+    RsaAlg.Free;
+  end;
 end;
 
 { TKeyPairInfo }
@@ -195,7 +250,10 @@ constructor TRSAKeyInfo.Create(AAlgorithm: TRSAAlgorithm; const AKey: TBytes; AP
 begin
   FAlgorithm := AAlgorithm;
   FPrivateKey := APrivateKey;
-  CreateAsymmetricKey(FAlgorithm.FHRsaAlg, AKey);
+  if APrivateKey then
+    CreatePrivateKey(FAlgorithm.FHRsaAlg, AKey)
+  else
+    CreatePublicKey(FAlgorithm.FHRsaAlg, AKey);
 end;
 
 destructor TRSAKeyInfo.Destroy;
@@ -209,13 +267,6 @@ begin
 end;
 
 function TRSAKeyInfo.GetCAPIPrivateKeyBlobStruct(AKeyBlob: TBytes; AKeyBlobSize: DWORD): PRIVATEKEYBLOB;
-
-  procedure CopyAndAdvance(const ASourceBuffer: TBytes; var ADestBuffer; var ACursor: DWORD; ASize: DWORD);
-  begin
-    Move(ASourceBuffer[ACursor], ADestBuffer, ASize);
-    Inc(ACursor, ASize);
-  end;
-
 var
   Cursor: DWORD;
   CbModulus, CbPrime: DWORD;
@@ -249,6 +300,24 @@ begin
 
   if Cursor <> AKeyBlobSize then
     raise Exception.Create('Mismatch bewteen the Key blob size and Private key structure size');
+end;
+
+function TRSAKeyInfo.GetCAPIPublicKeyBlobStruct(AKeyBlob: TBytes;
+  AKeyBlobSize: DWORD): PUBLICKEYBLOB;
+var
+  Cursor: DWORD;
+  CbModulus: DWORD;
+begin
+  Cursor := 0;
+  CopyAndAdvance(AKeyBlob, Result, Cursor, SizeOf(Result.PublicKeyStruc) + SizeOf(Result.RSAPubKey));
+
+  CbModulus := Result.RSAPubKey.Bitlen div 8;
+
+  SetLength(Result.Modulus, CbModulus);
+  CopyAndAdvance(AKeyBlob, Result.Modulus[0], Cursor, CbModulus);
+
+  if Cursor <> AKeyBlobSize then
+    raise Exception.Create('Mismatch bewteen the Key blob size and Public key structure size');
 end;
 
 function TRSAKeyInfo.GetCNGKeyBlob(const AKeyBlob: PRIVATEKEYBLOB; var ACbRSAKeyBlobBufferSize: DWORD ;
@@ -346,61 +415,77 @@ begin
     raise Exception.Create('Mismatch between the size of the RSA key blob and the source key blob');
 end;
 
-procedure TRSAKeyInfo.CreateAsymmetricKey(AAlgorithm: Pointer; const AKey: TBytes);
+procedure TRSAKeyInfo.LoadKeyFromPEM(AAlgorithm: Pointer; const AKey: TBytes;
+  var AKeyBlob: TBytes; var ACbKeyBlobSize: DWORD);
 var
   Status: Integer;
-  BlobBuffer, KeyBlob, RSAKeyBlobBuffer: TBytes;
-  CbPrivateKeySize, CbKeyBlobSize, CbRSAKeyBlobBufferSize: DWORD;
+  BlobBuffer: TBytes;
+  CbKeySize: DWORD;
   CbSkip: DWORD;
   CbFlags: DWORD;
-  PrivateKeyString: string;
-  PKKeyBlobStruct: PRIVATEKEYBLOB;
+  KeyString: string;
+  StructType: PChar;
 begin
+  StructType := PKCS_RSA_PRIVATE_KEY;
+  if not FPrivateKey then
+    StructType := RSA_CSP_PUBLICKEYBLOB;
+
   // I have to use the CryptoAPI to load the Private Key from PEM
-  PrivateKeyString := TEncoding.UTF8.GetString(AKey);
-  Status := CryptStringToBinaryW(PChar(PrivateKeyString),
+  KeyString := TEncoding.UTF8.GetString(AKey);
+  Status := CryptStringToBinaryW(PChar(KeyString),
                                  0,
                                  CRYPT_STRING_BASE64HEADER,
                                  nil,
-                                 CbPrivateKeySize,
+                                 CbKeySize,
                                  CbSkip,
                                  CbFlags);
   if Status <> 1 then
     raise Exception.Create('CryptStringToBinaryW error: ' + IntToStr(Status));
 
-  SetLength(BlobBuffer, CbPrivateKeySize);
-  Status := CryptStringToBinaryW(PChar(PrivateKeyString),
+  SetLength(BlobBuffer, CbKeySize);
+  Status := CryptStringToBinaryW(PChar(KeyString),
                                  0,
                                  CRYPT_STRING_BASE64HEADER,
                                  BlobBuffer,
-                                 CbPrivateKeySize,
+                                 CbKeySize,
                                  CbSkip,
                                  CbFlags);
   if Status <> 1 then
     raise Exception.Create('CryptStringToBinaryW error: ' + IntToStr(Status));
 
   Status := CryptDecodeObjectEx(X509_ASN_ENCODING or PKCS_7_ASN_ENCODING,
-                                PKCS_RSA_PRIVATE_KEY,
+                                StructType,
                                 BlobBuffer,
-                                CbPrivateKeySize,
+                                CbKeySize,
                                 0,
                                 nil,
                                 nil,
-                                CbKeyBlobSize);
+                                ACbKeyBlobSize);
   if Status <> 1 then
     raise Exception.Create('CryptDecodeObjectEx error: ' + IntToStr(Status));
 
-  SetLength(KeyBlob, CbKeyBlobSize);
+  SetLength(AKeyBlob, ACbKeyBlobSize);
   Status := CryptDecodeObjectEx(X509_ASN_ENCODING or PKCS_7_ASN_ENCODING,
-                                PKCS_RSA_PRIVATE_KEY,
+                                StructType,
                                 BlobBuffer,
-                                CbPrivateKeySize,
+                                CbKeySize,
                                 0,
                                 nil,
-                                KeyBlob,
-                                CbKeyBlobSize);
+                                AKeyBlob,
+                                ACbKeyBlobSize);
   if Status <> 1 then
     raise Exception.Create('CryptDecodeObjectEx error: ' + IntToStr(Status));
+end;
+
+procedure TRSAKeyInfo.CreatePrivateKey(AAlgorithm: Pointer; const AKey: TBytes);
+var
+  Status: Integer;
+  KeyBlob, RSAKeyBlobBuffer: TBytes;
+  CbKeyBlobSize, CbRSAKeyBlobBufferSize: DWORD;
+  PKKeyBlobStruct: PRIVATEKEYBLOB;
+begin
+  // Load private key from PEM data
+  LoadKeyFromPEM(AAlgorithm, AKey, KeyBlob, CbKeyBlobSize);
 
   PKKeyBlobStruct := GetCAPIPrivateKeyBlobStruct(KeyBlob, CbKeyBlobSize);
   RSAKeyBlobBuffer := GetCNGKeyBlob(PKKeyBlobStruct, CbRSAKeyBlobBufferSize, rsaPrivateKey);
@@ -409,6 +494,40 @@ begin
   Status := BCryptImportKeyPair(AAlgorithm,
                                 nil,
                                 BCRYPT_RSAPRIVATE_BLOB,
+                                FHKey,
+                                RSAKeyBlobBuffer,
+                                CbRSAKeyBlobBufferSize,
+                                0);
+  if not Succeeded(Status) then
+    raise Exception.Create('BCryptImportKeyPair error: ' + IntToStr(Status));
+end;
+
+procedure TRSAKeyInfo.CreatePublicKey(AAlgorithm: Pointer; const AKey: TBytes);
+var
+  Status: Integer;
+  KeyBlob, RSAKeyBlobBuffer: TBytes;
+  CbKeyBlobSize, CbRSAKeyBlobBufferSize: DWORD;
+  PKKeyBlobStruct: PUBLICKEYBLOB;
+  SuperBlobStruct: PRIVATEKEYBLOB;
+begin
+  // Load private key from PEM data
+  LoadKeyFromPEM(AAlgorithm, AKey, KeyBlob, CbKeyBlobSize);
+
+  PKKeyBlobStruct := GetCAPIPublicKeyBlobStruct(KeyBlob, CbKeyBlobSize);
+
+  // I can use the PRIVATEKEYBLOB structure because it extends PUBLICKEYBLOB (due to the full private key type).
+  CopyMemory(@SuperBlobStruct.PublicKeyStruc, @PKKeyBlobStruct.PublicKeyStruc, SizeOf(BLOBHEADER));
+  CopyMemory(@SuperBlobStruct.RSAPubKey, @PKKeyBlobStruct.RSAPubKey, SizeOf(RSAPUBKEY));
+  SetLength(SuperBlobStruct.Modulus, Length(PKKeyBlobStruct.Modulus));
+  Move(PKKeyBlobStruct.Modulus[0], SuperBlobStruct.Modulus[0], Length(PKKeyBlobStruct.Modulus));
+
+  // Get the public key blob
+  RSAKeyBlobBuffer := GetCNGKeyBlob(SuperBlobStruct, CbRSAKeyBlobBufferSize, rsaPublicKey);
+
+  // Import the key in order to use it to verify.
+  Status := BCryptImportKeyPair(AAlgorithm,
+                                nil,
+                                BCRYPT_RSAPUBLIC_BLOB,
                                 FHKey,
                                 RSAKeyBlobBuffer,
                                 CbRSAKeyBlobBufferSize,
