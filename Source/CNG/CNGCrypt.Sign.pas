@@ -60,7 +60,7 @@ type
   TCNGSign = class
   public
     procedure Sign(Data, SignedData: TStream; PrivateKey: TBytes); overload;
-    procedure Sign(Data, SignedData, PrivateKey: TBytes); overload;
+    procedure Sign(Data: TBytes; var SignedData: TBytes; PrivateKey: TBytes); overload;
 
     function Verify(SignedData: TStream; PublicKey: TBytes): Boolean; overload;
     function Verify(SignedData, PublicKey: TBytes): Boolean; overload;
@@ -116,7 +116,7 @@ begin
   SignedData.WriteBuffer(OutputBuffer[0], Length(OutputBuffer));
 end;
 
-procedure TCNGSign.Sign(Data, SignedData, PrivateKey: TBytes);
+procedure TCNGSign.Sign(Data: TBytes; var SignedData: TBytes; PrivateKey: TBytes);
 var
   Status: Integer;
   HashData: TBytes;
@@ -138,9 +138,12 @@ begin
   try
     RsaKey := TRSAKeyInfo.Create(RsaAlg, PrivateKey, True);
     try
+      // Use the SHA256 algorithm to create padding information.
+      PaddingInfo.pszAlgId := BCRYPT_SHA256_ALGORITHM;
+
       Status := BCryptSignHash(RsaKey.HKey,
-                               Pointer(PaddingInfo),
-                               Pointer(HashData[0]),
+                               @PaddingInfo,
+                               @HashData[0],
                                Length(HashData),
                                nil,
                                0,
@@ -151,12 +154,9 @@ begin
 
       SetLength(SignedData, SignatureLen);
 
-      // Use the SHA256 algorithm to create padding information.
-      PaddingInfo.pszAlgId := BCRYPT_SHA256_ALGORITHM;
-
       Status := BCryptSignHash(RsaKey.HKey,
-                               Pointer(PaddingInfo),
-                               Pointer(HashData[0]),
+                               @PaddingInfo,
+                               @HashData[0],
                                Length(HashData),
                                SignedData,
                                SignatureLen,
@@ -353,12 +353,12 @@ var
   CbPrivateKeySize, CbKeyBlobSize, CbRSAKeyBlobBufferSize: DWORD;
   CbSkip: DWORD;
   CbFlags: DWORD;
-  PrivateKeyString: PWideChar;
+  PrivateKeyString: string;
   PKKeyBlobStruct: PRIVATEKEYBLOB;
 begin
   // I have to use the CryptoAPI to load the Private Key from PEM
-  PrivateKeyString := PWideChar(TEncoding.UTF8.GetString(AKey));
-  Status := CryptStringToBinaryW(PrivateKeyString,
+  PrivateKeyString := TEncoding.UTF8.GetString(AKey);
+  Status := CryptStringToBinaryW(PChar(PrivateKeyString),
                                  0,
                                  CRYPT_STRING_BASE64HEADER,
                                  nil,
@@ -369,7 +369,7 @@ begin
     raise Exception.Create('CryptStringToBinaryW error: ' + IntToStr(Status));
 
   SetLength(BlobBuffer, CbPrivateKeySize);
-  Status := CryptStringToBinaryW(PrivateKeyString,
+  Status := CryptStringToBinaryW(PChar(PrivateKeyString),
                                  0,
                                  CRYPT_STRING_BASE64HEADER,
                                  BlobBuffer,

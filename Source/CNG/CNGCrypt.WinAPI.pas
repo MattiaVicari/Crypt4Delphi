@@ -77,7 +77,7 @@ const
   MS_PLATFORM_CRYPTO_PROVIDER = '"Microsoft Platform Crypto Provider';
 
 type
-  BCRYPT_PKCS1_PADDING_INFO = record
+  BCRYPT_PKCS1_PADDING_INFO = packed record
     pszAlgId: PWideChar;
   end;
 
