@@ -299,7 +299,7 @@ begin
   CopyAndAdvance(AKeyBlob, Result.PrivateExponent[0], Cursor, CbModulus);
 
   if Cursor <> AKeyBlobSize then
-    raise Exception.Create('Mismatch bewteen the Key blob size and Private key structure size');
+    raise Exception.Create('Mismatch between the Key blob size and Private key structure size');
 end;
 
 function TRSAKeyInfo.GetCAPIPublicKeyBlobStruct(AKeyBlob: TBytes;
@@ -317,7 +317,7 @@ begin
   CopyAndAdvance(AKeyBlob, Result.Modulus[0], Cursor, CbModulus);
 
   if Cursor <> AKeyBlobSize then
-    raise Exception.Create('Mismatch bewteen the Key blob size and Public key structure size');
+    raise Exception.Create('Mismatch between the Key blob size and Public key structure size');
 end;
 
 function TRSAKeyInfo.GetCNGKeyBlob(const AKeyBlob: PRIVATEKEYBLOB; var ACbRSAKeyBlobBufferSize: DWORD ;
@@ -423,9 +423,12 @@ var
   CbKeySize: DWORD;
   CbSkip: DWORD;
   CbFlags: DWORD;
+  CertEncodingType: DWORD;
   KeyString: string;
   StructType: PChar;
+  PubKeyBlob: TBytes;
 begin
+  CertEncodingType := X509_ASN_ENCODING or PKCS_7_ASN_ENCODING;
   StructType := PKCS_RSA_PRIVATE_KEY;
   if not FPrivateKey then
     StructType := RSA_CSP_PUBLICKEYBLOB;
@@ -453,7 +456,17 @@ begin
   if Status <> 1 then
     raise Exception.Create('CryptStringToBinaryW error: ' + IntToStr(Status));
 
-  Status := CryptDecodeObjectEx(X509_ASN_ENCODING or PKCS_7_ASN_ENCODING,
+  // For public key, check if I need to skip the first 24 bit in order to go from PUBLIC KEY to RSA PUBLIC KEY
+  if (not FPrivateKey) and (KeyString.StartsWith('-----BEGIN PUBLIC KEY-----')) then
+  begin
+    Dec(CbKeySize, 24);
+    SetLength(PubKeyBlob, CbKeySize);
+    Move(BlobBuffer[24], PubKeyBlob[0], CbKeySize);
+    SetLength(BlobBuffer, CbKeySize);
+    Move(PubKeyBlob[0], BlobBuffer[0], CbKeySize);
+  end;
+
+  Status := CryptDecodeObjectEx(CertEncodingType,
                                 StructType,
                                 BlobBuffer,
                                 CbKeySize,
@@ -465,7 +478,7 @@ begin
     raise Exception.Create('CryptDecodeObjectEx error: ' + IntToStr(Status));
 
   SetLength(AKeyBlob, ACbKeyBlobSize);
-  Status := CryptDecodeObjectEx(X509_ASN_ENCODING or PKCS_7_ASN_ENCODING,
+  Status := CryptDecodeObjectEx(CertEncodingType,
                                 StructType,
                                 BlobBuffer,
                                 CbKeySize,

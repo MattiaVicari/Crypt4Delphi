@@ -59,6 +59,7 @@ const
   PKCS_RSA_PRIVATE_KEY            = PChar(43);
   PKCS_PRIVATE_KEY_INFO           = PChar(44);
   PKCS_ENCRYPTED_PRIVATE_KEY_INFO = PChar(45);
+  X509_PUBLIC_KEY_INFO            = PChar(8);
   RSA_CSP_PUBLICKEYBLOB           = PChar(19);
 
 type
@@ -94,6 +95,28 @@ type
     PublicKeyStruc: BLOBHEADER;
     RSAPubKey: RSAPUBKEY;
     Modulus: TBytes;
+  end;
+
+  // https://docs.microsoft.com/en-us/windows/win32/api/wincrypt/ns-wincrypt-cert_public_key_info
+  CRYPT_OBJID_BLOB = record
+    CbData: DWORD;
+    PbData: TBytes;
+  end;
+
+  CRYPT_ALGORITHM_IDENTIFIER = record
+    pszObjId: PChar;
+    Parameters: CRYPT_OBJID_BLOB;
+  end;
+
+  CRYPT_BIT_BLOB = record
+    CbData: DWORD;
+    PbData: TBytes;
+    CUnusedBits: DWORD;
+  end;
+
+  CERT_PUBLIC_KEY_INFO = record
+    Algorithm: CRYPT_ALGORITHM_IDENTIFIER;
+    PublicKey: CRYPT_BIT_BLOB
   end;
 
 function CryptStringToBinaryW(
