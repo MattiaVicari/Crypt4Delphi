@@ -140,6 +140,7 @@ begin
   DataStream := TMemoryStream.Create;
   try
     DataStream.WriteBuffer(Data[0], Length(Data));
+    DataStream.Position := 0;
     HashData := THashSHA2.GetHashBytes(DataStream);
   finally
     DataStream.Free;
@@ -149,11 +150,8 @@ begin
   try
     RsaKey := TRSAKeyInfo.Create(RsaAlg, PrivateKey, True);
     try
-      // Use the SHA256 algorithm to create padding information.
-      PaddingInfo.pszAlgId := BCRYPT_SHA256_ALGORITHM;
-
       Status := BCryptSignHash(RsaKey.HKey,
-                               @PaddingInfo,
+                               nil,
                                @HashData[0],
                                Length(HashData),
                                nil,
@@ -164,6 +162,8 @@ begin
         raise Exception.Create('BCryptSignHash error: ' + IntToStr(Status));
 
       SetLength(SignedData, SignatureLen);
+      // Use the SHA256 algorithm to create padding information.
+      PaddingInfo.pszAlgId := BCRYPT_SHA256_ALGORITHM;
 
       Status := BCryptSignHash(RsaKey.HKey,
                                @PaddingInfo,
@@ -211,6 +211,7 @@ begin
   DataStream := TMemoryStream.Create;
   try
     DataStream.WriteBuffer(Data[0], Length(Data));
+    DataStream.Position := 0;
     HashData := THashSHA2.GetHashBytes(DataStream);
   finally
     DataStream.Free;
