@@ -64,8 +64,8 @@ type
   // https://docs.microsoft.com/en-us/windows/win32/seccng/signing-data-with-cng
   TCNGSign = class
   public
-    procedure Sign(Data, SignedData: TStream; PrivateKey: TBytes); overload;
-    procedure Sign(Data: TBytes; var SignedData: TBytes; PrivateKey: TBytes); overload;
+    procedure Sign(Data, Signature: TStream; PrivateKey: TBytes); overload;
+    procedure Sign(Data: TBytes; var Signature: TBytes; PrivateKey: TBytes); overload;
 
     function Verify(Data, Signature: TStream; PublicKey: TBytes): Boolean; overload;
     function Verify(Data, Signature, PublicKey: TBytes): Boolean; overload;
@@ -115,7 +115,7 @@ end;
 
 { TCNGSign }
 
-procedure TCNGSign.Sign(Data, SignedData: TStream; PrivateKey: TBytes);
+procedure TCNGSign.Sign(Data, Signature: TStream; PrivateKey: TBytes);
 var
   InputBuffer: TBytes;
   OutputBuffer: TBytes;
@@ -124,10 +124,10 @@ begin
   Data.Position := 0;
   Data.Read(InputBuffer[0], Data.Size);
   Sign(InputBuffer, OutputBuffer, PrivateKey);
-  SignedData.WriteBuffer(OutputBuffer[0], Length(OutputBuffer));
+  Signature.WriteBuffer(OutputBuffer[0], Length(OutputBuffer));
 end;
 
-procedure TCNGSign.Sign(Data: TBytes; var SignedData: TBytes; PrivateKey: TBytes);
+procedure TCNGSign.Sign(Data: TBytes; var Signature: TBytes; PrivateKey: TBytes);
 var
   Status: DWORD;
   HashData: TBytes;
@@ -161,7 +161,7 @@ begin
       if not Succeeded(Status) then
         raise Exception.Create('BCryptSignHash error: ' + IntToStr(Status));
 
-      SetLength(SignedData, SignatureLen);
+      SetLength(Signature, SignatureLen);
       // Use the SHA256 algorithm to create padding information.
       PaddingInfo.pszAlgId := BCRYPT_SHA256_ALGORITHM;
 
@@ -169,7 +169,7 @@ begin
                                @PaddingInfo,
                                @HashData[0],
                                Length(HashData),
-                               SignedData,
+                               Signature,
                                SignatureLen,
                                SignedLen,
                                BCRYPT_PAD_PKCS1);

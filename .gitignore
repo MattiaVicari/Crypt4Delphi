@@ -7,3 +7,6 @@ dunitx-results.xml
 /Source/CNG/__history
 /Source/CAPI/__history
 /Source/__history
+/Demos/03.CNG Sign/__history
+/Demos/03.CNG Sign/data/*
+!/Demos/03.CNG Sign/data/createKeyPair.bat

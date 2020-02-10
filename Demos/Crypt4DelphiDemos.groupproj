@@ -9,6 +9,9 @@
         <Projects Include="02.CNG RNG\DemoCNGRNG.dproj">
             <Dependencies/>
         </Projects>
+        <Projects Include="03.CNG Sign\DemoCNGSign.dproj">
+            <Dependencies/>
+        </Projects>
     </ItemGroup>
     <ProjectExtensions>
         <Borland.Personality>Default.Personality.12</Borland.Personality>
@@ -35,14 +38,23 @@
     <Target Name="DemoCNGRNG:Make">
         <MSBuild Projects="02.CNG RNG\DemoCNGRNG.dproj" Targets="Make"/>
     </Target>
+    <Target Name="DemoCNGSign">
+        <MSBuild Projects="03.CNG Sign\DemoCNGSign.dproj"/>
+    </Target>
+    <Target Name="DemoCNGSign:Clean">
+        <MSBuild Projects="03.CNG Sign\DemoCNGSign.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="DemoCNGSign:Make">
+        <MSBuild Projects="03.CNG Sign\DemoCNGSign.dproj" Targets="Make"/>
+    </Target>
     <Target Name="Build">
-        <CallTarget Targets="DemoCNGAES;DemoCNGRNG"/>
+        <CallTarget Targets="DemoCNGAES;DemoCNGRNG;DemoCNGSign"/>
     </Target>
     <Target Name="Clean">
-        <CallTarget Targets="DemoCNGAES:Clean;DemoCNGRNG:Clean"/>
+        <CallTarget Targets="DemoCNGAES:Clean;DemoCNGRNG:Clean;DemoCNGSign:Clean"/>
     </Target>
     <Target Name="Make">
-        <CallTarget Targets="DemoCNGAES:Make;DemoCNGRNG:Make"/>
+        <CallTarget Targets="DemoCNGAES:Make;DemoCNGRNG:Make;DemoCNGSign:Make"/>
     </Target>
     <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
 </Project>

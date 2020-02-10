@@ -1,0 +1,29 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<BorlandProject>
+	<Transactions>
+    <Transaction>2016/11/03 13:55:03.000.532,=C:\Users\Mattia\Documents\Embarcadero\Studio\Projects\AppletModule1.pas</Transaction>
+    <Transaction>2017/11/14 11:25:30.000.993,=C:\Users\Mattia\Documents\Embarcadero\Studio\Projects\Unit1.pas</Transaction>
+    <Transaction>2018/04/12 15:29:37.000.699,=C:\Users\Mattia\Documents\Embarcadero\Studio\Projects\Unit1.pas</Transaction>
+    <Transaction>2018/04/23 14:42:36.000.347,=C:\Users\Mattia\Documents\Embarcadero\Studio\Projects\Unit1.pas</Transaction>
+    <Transaction>2018/09/05 14:30:36.000.616,=C:\Users\Mattia\Documents\Embarcadero\Studio\Projects\FormUnit1.pas</Transaction>
+    <Transaction>2018/09/05 14:30:37.000.111,=C:\Users\Mattia\Documents\Embarcadero\Studio\Projects\WebModuleUnit1.pas</Transaction>
+    <Transaction>2018/09/05 14:35:35.000.589,=C:\Users\Mattia\Documents\Embarcadero\Studio\Projects\WebModuleUnit1.pas</Transaction>
+    <Transaction>2018/09/05 14:35:35.000.419,=C:\Users\Mattia\Documents\Embarcadero\Studio\Projects\FormUnit1.pas</Transaction>
+    <Transaction>2018/09/05 15:09:25.000.825,=C:\Users\Mattia\Documents\Embarcadero\Studio\Projects\WebModuleUnit1.pas</Transaction>
+    <Transaction>2018/11/08 08:41:17.000.661,=C:\Users\Mattia\Documents\Embarcadero\Studio\Projects\Unit1.pas</Transaction>
+    <Transaction>2018/11/08 08:42:44.000.543,=C:\Users\Mattia\Documents\Embarcadero\Studio\Projects\FormUnit1.pas</Transaction>
+    <Transaction>2018/11/08 08:42:45.000.028,=C:\Users\Mattia\Documents\Embarcadero\Studio\Projects\WebModuleUnit1.pas</Transaction>
+    <Transaction>2018/11/08 08:57:01.000.217,=C:\Users\Mattia\Documents\Embarcadero\Studio\Projects\WebModuleUnit1.pas</Transaction>
+    <Transaction>2018/12/06 09:36:41.000.278,=C:\Users\Mattia\Documents\Embarcadero\Studio\Projects\Unit1.pas</Transaction>
+    <Transaction>2019/08/01 11:09:03.000.199,=C:\Users\Mattia\Documents\Embarcadero\Studio\Projects\Unit1.pas</Transaction>
+    <Transaction>2019/11/12 11:37:26.000.327,=C:\Users\Mattia\Documents\Embarcadero\Studio\Projects\Unit1.pas</Transaction>
+    <Transaction>2020/02/10 11:28:48.418,=C:\Users\Mattia\Documents\Embarcadero\Studio\Projects\Unit1.pas</Transaction>
+    <Transaction>2020/02/10 11:30:02.666,C:\Progetti\crypt4delphi\Demos\03.CNG Sign\MainFrm.dfm=C:\Users\Mattia\Documents\Embarcadero\Studio\Projects\Unit1.dfm</Transaction>
+    <Transaction>2020/02/10 11:30:02.666,C:\Progetti\crypt4delphi\Demos\03.CNG Sign\MainFrm.pas=C:\Users\Mattia\Documents\Embarcadero\Studio\Projects\Unit1.pas</Transaction>
+    <Transaction>2020/02/10 11:30:35.382,C:\Progetti\crypt4delphi\Demos\03.CNG Sign\DemoCNGSign.dproj=C:\Users\Mattia\Documents\Embarcadero\Studio\Projects\Project1.dproj</Transaction>
+    <Transaction>2020/02/10 11:50:13.019,=C:\Progetti\crypt4delphi\Source\CNG\CNGCrypt.Sign.pas</Transaction>
+    <Transaction>2020/02/10 11:50:48.212,=C:\Progetti\crypt4delphi\Source\CAPI\CNGCrypt.CAPI.pas</Transaction>
+    <Transaction>2020/02/10 11:51:06.994,=C:\Progetti\crypt4delphi\Source\CNGCrypt.Utils.pas</Transaction>
+    <Transaction>2020/02/10 11:53:02.396,=C:\Progetti\crypt4delphi\Source\CNG\CNGCrypt.WinAPI.pas</Transaction>
+  </Transactions>
+</BorlandProject>
