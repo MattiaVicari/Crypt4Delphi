@@ -77,13 +77,15 @@ const
     'Nullam arcu erat, pretium in mattis ac, lacinia non eros. Morbi eu neque elit. Integer sit amet tristique nisi, lacinia euismod ante.';
 var
   CipherData, PlainData: TBytes;
+  Len: Integer;
 begin
   FCNGCrypt.Password := Password;
 
   FCNGCrypt.Encrypt(TEncoding.UTF8.GetBytes(PlainText), CipherData);
   FCNGCrypt.Decrypt(CipherData, PlainData);
 
-  Assert.AreEqual(Length(PlainData), GetOutputSizeAES128(TEncoding.UTF8.GetBytes(PlainText)));
+  Len := Length(PlainData);
+  Assert.AreEqual(Len, GetOutputSizeAES128(TEncoding.UTF8.GetBytes(PlainText)));
 end;
 
 procedure TCryptCNGTest.TestEncryptDecryptLongText;

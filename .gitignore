@@ -13,3 +13,4 @@ dunitx-results.xml
 /Demos/03.CNG Sign/data/*
 !/Demos/03.CNG Sign/data/createKeyPair.bat
 Tests/CNG/__history/
+*.rsm

@@ -110,7 +110,7 @@ type
     PublicKey: CRYPT_BIT_BLOB
   end;
 
-  CRYPT_PRIVATE_KEY_INFO = packed record
+  CRYPT_PRIVATE_KEY_INFO = record
     Version: DWORD;
     Algorithm: CRYPT_ALGORITHM_IDENTIFIER;
     PrivateKey: CRYPT_DER_BLOB;
