@@ -47,6 +47,12 @@ const
   CRYPT_STRING_NOCRLF                 = $40000000;
   CRYPT_STRING_NOCR                   = $80000000;
 
+  CRYPT_DECODE_NOCOPY_FLAG                      = $00001;
+  CRYPT_DECODE_TO_BE_SIGNED_FLAG                = $00002;
+  CRYPT_DECODE_SHARE_OID_STRING_FLAG            = $00004;
+  CRYPT_DECODE_NO_SIGNATURE_BYTE_REVERSAL_FLAG  = $00008;
+  CRYPT_DECODE_ALLOC_FLAG                       = $08000;
+
   // Message encoding types
   CRYPT_ASN_ENCODING   = $00000001;
   CRYPT_NDR_ENCODING   = $00000002;
@@ -61,6 +67,7 @@ const
   PKCS_ENCRYPTED_PRIVATE_KEY_INFO = PChar(45);
   X509_PUBLIC_KEY_INFO            = PChar(8);
   RSA_CSP_PUBLICKEYBLOB           = PChar(19);
+  CNG_RSA_PRIVATE_KEY_BLOB        = PChar(83);
 
 type
   // https://docs.microsoft.com/en-us/windows/win32/api/wincrypt/ns-wincrypt-publickeystruc
@@ -98,25 +105,16 @@ type
   end;
 
   // https://docs.microsoft.com/en-us/windows/win32/api/wincrypt/ns-wincrypt-cert_public_key_info
-  CRYPT_OBJID_BLOB = record
-    CbData: DWORD;
-    PbData: TBytes;
-  end;
-
-  CRYPT_ALGORITHM_IDENTIFIER = record
-    pszObjId: PChar;
-    Parameters: CRYPT_OBJID_BLOB;
-  end;
-
-  CRYPT_BIT_BLOB = record
-    CbData: DWORD;
-    PbData: TBytes;
-    CUnusedBits: DWORD;
-  end;
-
   CERT_PUBLIC_KEY_INFO = record
     Algorithm: CRYPT_ALGORITHM_IDENTIFIER;
     PublicKey: CRYPT_BIT_BLOB
+  end;
+
+  CRYPT_PRIVATE_KEY_INFO = packed record
+    Version: DWORD;
+    Algorithm: CRYPT_ALGORITHM_IDENTIFIER;
+    PrivateKey: CRYPT_DER_BLOB;
+    pAttributes: PCRYPT_ATTRIBUTES;
   end;
 
 function CryptStringToBinaryW(
