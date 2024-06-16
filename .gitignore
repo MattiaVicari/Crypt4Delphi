@@ -3,6 +3,7 @@
 *.dcu
 *.stat
 *.dproj.local
+*.groupproj.local
 dunitx-results.xml
 /Demos/02.CNG RNG/__history
 /Source/CNG/__history

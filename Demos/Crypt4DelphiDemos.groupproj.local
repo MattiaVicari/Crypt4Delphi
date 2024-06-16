@@ -1,9 +1,0 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
-<BorlandProject>
-	<Transactions>
-    <Transaction>2019/12/10 09:30:03.000.785,C:\Progetti\crypt4delphi\Demos\Crypt4DelphiDemos.groupproj=C:\Users\Mattia\Documents\Embarcadero\Studio\Projects\ProjectGroup1.groupproj</Transaction>
-  </Transactions>
-	<Default.Personality>
-		<Projects ActiveProject="D:\Lavoro\Delphi\Crypt4Delphi\Demos\03.CNG Sign\DemoCNGSign.dproj"/>
-	</Default.Personality>
-</BorlandProject>
