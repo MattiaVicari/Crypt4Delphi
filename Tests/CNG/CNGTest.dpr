@@ -13,7 +13,11 @@ uses
   DUnitX.TestFramework,
   CryptCNGTest in 'CryptCNGTest.pas',
   CNGCrypt.Core in '..\..\Source\CNG\CNGCrypt.Core.pas',
-  CNGCrypt.WinAPI in '..\..\Source\CNG\CNGCrypt.WinAPI.pas';
+  CNGCrypt.WinAPI in '..\..\Source\CNG\CNGCrypt.WinAPI.pas',
+  SignCNGTest in 'SignCNGTest.pas',
+  CNGCrypt.Sign in '..\..\Source\CNG\CNGCrypt.Sign.pas',
+  CNGCrypt.CAPI in '..\..\Source\CAPI\CNGCrypt.CAPI.pas',
+  CNGCrypt.Utils in '..\..\Source\CNGCrypt.Utils.pas';
 
 var
   runner : ITestRunner;

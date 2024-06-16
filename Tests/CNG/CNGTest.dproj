@@ -125,6 +125,10 @@
         <DCCReference Include="CryptCNGTest.pas"/>
         <DCCReference Include="..\..\Source\CNG\CNGCrypt.Core.pas"/>
         <DCCReference Include="..\..\Source\CNG\CNGCrypt.WinAPI.pas"/>
+        <DCCReference Include="SignCNGTest.pas"/>
+        <DCCReference Include="..\..\Source\CNG\CNGCrypt.Sign.pas"/>
+        <DCCReference Include="..\..\Source\CAPI\CNGCrypt.CAPI.pas"/>
+        <DCCReference Include="..\..\Source\CNGCrypt.Utils.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>
@@ -169,6 +173,12 @@
                 <DeployFile LocalName="$(BDS)\Redist\osx32\libcgsqlite3.dylib" Class="DependencyModule"/>
                 <DeployFile LocalName="$(BDS)\Redist\osx32\libcgunwind.1.0.dylib" Class="DependencyModule">
                     <Platform Name="OSX32">
+                        <Overwrite>true</Overwrite>
+                    </Platform>
+                </DeployFile>
+                <DeployFile LocalName="CNGTest.exe" Configuration="Debug" Class="ProjectOutput">
+                    <Platform Name="Win32">
+                        <RemoteName>CNGTest.exe</RemoteName>
                         <Overwrite>true</Overwrite>
                     </Platform>
                 </DeployFile>
