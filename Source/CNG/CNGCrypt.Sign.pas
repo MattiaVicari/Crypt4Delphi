@@ -28,6 +28,7 @@ uses
 
 type
   TRSAKeyType = (rsaPrivateKey, rsaPublicKey, rsaFullPrivate);
+  TPEMType = (keypairInfo, privateKeyInfo, publicKeyInfo);
 
   TRSAAlgorithm = class(TObject)
   private
@@ -48,8 +49,16 @@ type
     FPrivateKey: Boolean;
     procedure CreatePrivateKey(AAlgorithm: Pointer; const AKey: TBytes);
     procedure CreatePublicKey(AAlgorithm: Pointer; const AKey: TBytes);
-    procedure LoadKeyFromPEM(AAlgorithm: Pointer; const AKey: TBytes;
-        var AKeyBlob: TBytes; var ACbKeyBlobSize: DWORD);
+
+    // Load Key from PEM
+    function LoadKeyFromPEM(AAlgorithm: Pointer; const AKey: TBytes;
+      var AKeyBlob: TBytes; var ACbKeyBlobSize: DWORD): TPEMType;
+    procedure LoadPKCS1Key(ACertEncodingType: DWORD; ABlobBuffer: TBytes; ACbKeySize: DWORD;
+      var AKeyBlob: TBytes; var ACbKeyBlobSize: DWORD; APrivateKey: boolean);
+    procedure LoadPKCS8Key(ACertEncodingType: DWORD; ABlobBuffer: TBytes; ACbKeySize: DWORD;
+      var AKeyBlob: TBytes; var ACbKeyBlobSize: DWORD);
+
+    // Populate BLOB struct
     function GetCAPIPrivateKeyBlobStruct(AKeyBlob: TBytes; AKeyBlobSize: DWORD): PRIVATEKEYBLOB;
     function GetCAPIPublicKeyBlobStruct(AKeyBlob: TBytes; AKeyBlobSize: DWORD): PUBLICKEYBLOB;
     function GetCNGKeyBlob(const AKeyBlob: PRIVATEKEYBLOB; var ACbRSAKeyBlobBufferSize: DWORD; AKeyType: TRSAKeyType): TBytes;
@@ -416,8 +425,8 @@ begin
     raise Exception.Create('Mismatch between the size of the RSA key blob and the source key blob');
 end;
 
-procedure TRSAKeyInfo.LoadKeyFromPEM(AAlgorithm: Pointer; const AKey: TBytes;
-  var AKeyBlob: TBytes; var ACbKeyBlobSize: DWORD);
+function TRSAKeyInfo.LoadKeyFromPEM(AAlgorithm: Pointer; const AKey: TBytes;
+  var AKeyBlob: TBytes; var ACbKeyBlobSize: DWORD): TPEMType;
 var
   Status: Integer;
   BlobBuffer: TBytes;
@@ -430,12 +439,9 @@ var
   PubKeyBlob: TBytes;
 begin
   CertEncodingType := X509_ASN_ENCODING or PKCS_7_ASN_ENCODING;
-  StructType := PKCS_RSA_PRIVATE_KEY;
-  if not FPrivateKey then
-    StructType := RSA_CSP_PUBLICKEYBLOB;
+  KeyString := TEncoding.UTF8.GetString(AKey);
 
   // I have to use the CryptoAPI to load the Private Key from PEM
-  KeyString := TEncoding.UTF8.GetString(AKey);
   Status := CryptStringToBinaryW(PChar(KeyString),
                                  0,
                                  CRYPT_STRING_BASE64HEADER,
@@ -467,10 +473,42 @@ begin
     Move(PubKeyBlob[0], BlobBuffer[0], CbKeySize);
   end;
 
-  Status := CryptDecodeObjectEx(CertEncodingType,
+  if FPrivateKey then
+  begin
+    StructType := PKCS_RSA_PRIVATE_KEY; // for PKCS#1 Private Key
+    Result := TPEMType.keypairInfo;
+    if KeyString.StartsWith('-----BEGIN PRIVATE KEY-----') then
+    begin
+      StructType := PKCS_PRIVATE_KEY_INFO; // for PKCS#8 Private Key
+      Result := TPEMType.privateKeyInfo;
+    end;
+  end
+  else
+  begin
+    StructType := RSA_CSP_PUBLICKEYBLOB; // for PKCS#1 Public Key
+    Result := TPEMType.publicKeyInfo;
+  end;
+
+  if StructType = PKCS_PRIVATE_KEY_INFO then
+    LoadPKCS8Key(CertEncodingType, BlobBuffer, CbKeySize, AKeyBlob, ACbKeyBlobSize)
+  else
+    LoadPKCS1Key(CertEncodingType, BlobBuffer, CbKeySize, AKeyBlob, ACbKeyBlobSize, FPrivateKey);
+end;
+
+procedure TRSAKeyInfo.LoadPKCS1Key(ACertEncodingType: DWORD; ABlobBuffer: TBytes;
+  ACbKeySize: DWORD; var AKeyBlob: TBytes; var ACbKeyBlobSize: DWORD; APrivateKey: Boolean);
+var
+  Status: Integer;
+  StructType: PChar;
+begin
+  if APrivateKey then
+    StructType := PKCS_RSA_PRIVATE_KEY
+  else
+    StructType := RSA_CSP_PUBLICKEYBLOB;
+  Status := CryptDecodeObjectEx(ACertEncodingType,
                                 StructType,
-                                BlobBuffer,
-                                CbKeySize,
+                                ABlobBuffer,
+                                ACbKeySize,
                                 0,
                                 nil,
                                 nil,
@@ -479,10 +517,68 @@ begin
     raise Exception.Create('CryptDecodeObjectEx error: ' + IntToStr(Status));
 
   SetLength(AKeyBlob, ACbKeyBlobSize);
-  Status := CryptDecodeObjectEx(CertEncodingType,
+  Status := CryptDecodeObjectEx(ACertEncodingType,
                                 StructType,
-                                BlobBuffer,
-                                CbKeySize,
+                                ABlobBuffer,
+                                ACbKeySize,
+                                0,
+                                nil,
+                                AKeyBlob,
+                                ACbKeyBlobSize);
+  if Status <> 1 then
+    raise Exception.Create('CryptDecodeObjectEx error: ' + IntToStr(Status));
+end;
+
+procedure TRSAKeyInfo.LoadPKCS8Key(ACertEncodingType: DWORD; ABlobBuffer: TBytes;
+  ACbKeySize: DWORD; var AKeyBlob: TBytes; var ACbKeyBlobSize: DWORD);
+var
+  Status: Integer;
+  StructType: PChar;
+  InfoBuffer: TBytes;
+  Info: CRYPT_PRIVATE_KEY_INFO;
+  CbInfo: DWORD;
+begin
+  StructType := PKCS_PRIVATE_KEY_INFO;
+  Status := CryptDecodeObjectEx(ACertEncodingType,
+                                StructType,
+                                ABlobBuffer,
+                                ACbKeySize,
+                                0,
+                                nil,
+                                nil,
+                                CbInfo);
+  if Status <> 1 then
+    raise Exception.Create('CryptDecodeObjectEx error: ' + IntToStr(Status));
+
+  SetLength(InfoBuffer, CbInfo);
+  Status := CryptDecodeObjectEx(ACertEncodingType,
+                                StructType,
+                                ABlobBuffer,
+                                ACbKeySize,
+                                0,
+                                nil,
+                                InfoBuffer,
+                                CbInfo);
+  if Status <> 1 then
+    raise Exception.Create('CryptDecodeObjectEx error: ' + IntToStr(Status));
+
+  Move(InfoBuffer[0], Info, SizeOf(CRYPT_PRIVATE_KEY_INFO));
+  Status := CryptDecodeObjectEx(ACertEncodingType,
+                                CNG_RSA_PRIVATE_KEY_BLOB,
+                                Info.PrivateKey.pbData,
+                                Info.PrivateKey.cbData,
+                                0,
+                                nil,
+                                nil,
+                                ACbKeyBlobSize);
+  if Status <> 1 then
+    raise Exception.Create('CryptDecodeObjectEx error: ' + IntToStr(Status));
+
+  SetLength(AKeyBlob, ACbKeyBlobSize);
+  Status := CryptDecodeObjectEx(ACertEncodingType,
+                                CNG_RSA_PRIVATE_KEY_BLOB,
+                                Info.PrivateKey.pbData,
+                                Info.PrivateKey.cbData,
                                 0,
                                 nil,
                                 AKeyBlob,
@@ -497,23 +593,41 @@ var
   KeyBlob, RSAKeyBlobBuffer: TBytes;
   CbKeyBlobSize, CbRSAKeyBlobBufferSize: DWORD;
   PKKeyBlobStruct: PRIVATEKEYBLOB;
+  PEMType: TPEMType;
 begin
   // Load private key from PEM data
-  LoadKeyFromPEM(AAlgorithm, AKey, KeyBlob, CbKeyBlobSize);
-
-  PKKeyBlobStruct := GetCAPIPrivateKeyBlobStruct(KeyBlob, CbKeyBlobSize);
-  RSAKeyBlobBuffer := GetCNGKeyBlob(PKKeyBlobStruct, CbRSAKeyBlobBufferSize, rsaPrivateKey);
+  PEMType := LoadKeyFromPEM(AAlgorithm, AKey, KeyBlob, CbKeyBlobSize);
 
   // Import the key in order to use it to sign.
-  Status := BCryptImportKeyPair(AAlgorithm,
-                                nil,
-                                BCRYPT_RSAPRIVATE_BLOB,
-                                FHKey,
-                                RSAKeyBlobBuffer,
-                                CbRSAKeyBlobBufferSize,
-                                0);
-  if not Succeeded(Status) then
-    raise Exception.Create('BCryptImportKeyPair error: ' + IntToStr(Status));
+  if PEMType = TPEMType.privateKeyInfo then
+  begin
+    Status := BCryptImportKeyPair(AAlgorithm,
+                                  nil,
+                                  BCRYPT_RSAPRIVATE_BLOB,
+                                  FHKey,
+                                  KeyBlob,
+                                  CbKeyBlobSize,
+                                  0);
+    if not Succeeded(Status) then
+      raise Exception.Create('BCryptImportKeyPair error: ' + IntToStr(Status));
+  end
+  else if PEMType = TPEMType.keypairInfo then
+  begin
+    PKKeyBlobStruct := GetCAPIPrivateKeyBlobStruct(KeyBlob, CbKeyBlobSize);
+    RSAKeyBlobBuffer := GetCNGKeyBlob(PKKeyBlobStruct, CbRSAKeyBlobBufferSize, rsaPrivateKey);
+
+    Status := BCryptImportKeyPair(AAlgorithm,
+                                  nil,
+                                  BCRYPT_RSAPRIVATE_BLOB,
+                                  FHKey,
+                                  RSAKeyBlobBuffer,
+                                  CbRSAKeyBlobBufferSize,
+                                  0);
+    if not Succeeded(Status) then
+      raise Exception.Create('BCryptImportKeyPair error: ' + IntToStr(Status));
+  end
+  else
+    raise Exception.Create('Unmanaged Private key type');
 end;
 
 procedure TRSAKeyInfo.CreatePublicKey(AAlgorithm: Pointer; const AKey: TBytes);

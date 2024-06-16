@@ -2,7 +2,7 @@ object frmMain: TfrmMain
   Left = 0
   Top = 0
   Caption = 'DEMO Sign'
-  ClientHeight = 468
+  ClientHeight = 502
   ClientWidth = 655
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -10,11 +10,9 @@ object frmMain: TfrmMain
   Font.Height = -11
   Font.Name = 'Tahoma'
   Font.Style = []
-  OldCreateOrder = False
   OnCreate = FormCreate
   OnDestroy = FormDestroy
   OnShow = FormShow
-  PixelsPerInch = 96
   TextHeight = 13
   object panelKeys: TPanel
     Left = 0
@@ -25,6 +23,7 @@ object frmMain: TfrmMain
     BevelOuter = bvNone
     ShowCaption = False
     TabOrder = 0
+    ExplicitWidth = 649
     object SplitterKey: TSplitter
       Left = 320
       Top = 0
@@ -62,8 +61,6 @@ object frmMain: TfrmMain
         ReadOnly = True
         ScrollBars = ssVertical
         TabOrder = 0
-        ExplicitWidth = 300
-        ExplicitHeight = 89
       end
     end
     object btnGenerateKeyPair: TButton
@@ -76,9 +73,7 @@ object frmMain: TfrmMain
       Caption = 'Generate key pair (openssl required)'
       TabOrder = 1
       OnClick = btnGenerateKeyPairClick
-      ExplicitLeft = 400
-      ExplicitTop = 112
-      ExplicitWidth = 75
+      ExplicitWidth = 643
     end
     object panelPublicKey: TPanel
       Left = 325
@@ -88,8 +83,7 @@ object frmMain: TfrmMain
       Align = alClient
       ShowCaption = False
       TabOrder = 2
-      ExplicitLeft = 318
-      ExplicitWidth = 337
+      ExplicitWidth = 324
       DesignSize = (
         330
         162)
@@ -109,8 +103,7 @@ object frmMain: TfrmMain
         ReadOnly = True
         ScrollBars = ssVertical
         TabOrder = 0
-        ExplicitWidth = 322
-        ExplicitHeight = 89
+        ExplicitWidth = 309
       end
     end
   end
@@ -118,18 +111,18 @@ object frmMain: TfrmMain
     Left = 0
     Top = 193
     Width = 655
-    Height = 275
+    Height = 309
     Align = alClient
     BevelOuter = bvNone
     ShowCaption = False
     TabOrder = 1
-    ExplicitTop = 8
-    ExplicitHeight = 145
+    ExplicitWidth = 649
+    ExplicitHeight = 300
     object SplitterDataSign: TSplitter
       Left = 320
       Top = 0
       Width = 5
-      Height = 213
+      Height = 216
       ExplicitLeft = 16
       ExplicitTop = 16
       ExplicitHeight = 120
@@ -138,14 +131,15 @@ object frmMain: TfrmMain
       Left = 0
       Top = 0
       Width = 320
-      Height = 213
+      Height = 216
       Align = alLeft
       BevelOuter = bvNone
       ShowCaption = False
       TabOrder = 0
+      ExplicitHeight = 207
       DesignSize = (
         320
-        213)
+        216)
       object lblData: TLabel
         Left = 8
         Top = 8
@@ -157,43 +151,41 @@ object frmMain: TfrmMain
         Left = 8
         Top = 25
         Width = 307
-        Height = 182
+        Height = 185
         Anchors = [akLeft, akTop, akRight, akBottom]
         Lines.Strings = (
           'Data to sign')
         ScrollBars = ssVertical
         TabOrder = 0
-        ExplicitWidth = 300
-        ExplicitHeight = 83
+        ExplicitHeight = 176
       end
     end
     object btnSign: TButton
       AlignWithMargins = True
       Left = 3
-      Top = 216
+      Top = 219
       Width = 649
       Height = 25
       Align = alBottom
       Caption = 'Sign'
       TabOrder = 1
       OnClick = btnSignClick
-      ExplicitTop = 117
+      ExplicitTop = 210
+      ExplicitWidth = 643
     end
     object Panel3: TPanel
       Left = 325
       Top = 0
       Width = 330
-      Height = 213
+      Height = 216
       Align = alClient
       ShowCaption = False
       TabOrder = 2
-      ExplicitLeft = 448
-      ExplicitTop = 48
-      ExplicitWidth = 185
-      ExplicitHeight = 41
+      ExplicitWidth = 324
+      ExplicitHeight = 207
       DesignSize = (
         330
-        213)
+        216)
       object lblSignature: TLabel
         Left = 8
         Top = 8
@@ -205,26 +197,54 @@ object frmMain: TfrmMain
         Left = 8
         Top = 23
         Width = 315
-        Height = 182
+        Height = 185
         Anchors = [akLeft, akTop, akRight, akBottom]
         ReadOnly = True
         ScrollBars = ssVertical
         TabOrder = 0
-        ExplicitWidth = 322
-        ExplicitHeight = 83
+        ExplicitWidth = 309
+        ExplicitHeight = 176
       end
     end
     object btnVerify: TButton
       AlignWithMargins = True
       Left = 3
-      Top = 247
+      Top = 281
       Width = 649
       Height = 25
       Align = alBottom
       Caption = 'Verify'
       TabOrder = 3
       OnClick = btnVerifyClick
-      ExplicitTop = 296
+      ExplicitTop = 272
+      ExplicitWidth = 643
     end
+    object btnExportSign: TButton
+      AlignWithMargins = True
+      Left = 3
+      Top = 250
+      Width = 649
+      Height = 25
+      Align = alBottom
+      Caption = 'Export Signature'
+      TabOrder = 4
+      OnClick = btnExportSignClick
+      ExplicitTop = 241
+      ExplicitWidth = 643
+    end
+  end
+  object dlgSaveSignature: TSaveDialog
+    FileName = 'data.signature'
+    Filter = 'Signature|*.signature'
+    Options = [ofOverwritePrompt, ofHideReadOnly, ofEnableSizing]
+    Title = 'Export Signature'
+    Left = 501
+    Top = 281
+  end
+  object timerKeyPair: TTimer
+    Enabled = False
+    OnTimer = timerKeyPairTimer
+    Left = 152
+    Top = 72
   end
 end
