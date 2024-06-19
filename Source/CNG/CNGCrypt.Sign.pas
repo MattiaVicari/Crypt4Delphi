@@ -166,7 +166,7 @@ begin
                                nil,
                                0,
                                SignatureLen,
-                               0);
+                               BCRYPT_PAD_PKCS1);
       if not Succeeded(Status) then
         raise Exception.Create('BCryptSignHash error: ' + IntToStr(Status));
 
