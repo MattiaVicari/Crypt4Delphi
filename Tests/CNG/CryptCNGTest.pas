@@ -13,7 +13,6 @@ type
   private
     FCNGCrypt: TCNGCrypt;
     function GetArray<T>(const AArray: array of T; ACount: Integer): TArray<T>;
-    function GetOutputSizeAES128(const AData: TBytes): Integer;
   public
     [Setup]
     procedure Setup;
@@ -39,19 +38,6 @@ function TCryptCNGTest.GetArray<T>(const AArray: array of T; ACount: Integer): T
 begin
   SetLength(Result, ACount);
   Move(AArray, Result[0], ACount);
-end;
-
-function TCryptCNGTest.GetOutputSizeAES128(const AData: TBytes): Integer;
-const
-  BlockSize = 16; // AES 128bit
-var
-  Len, NumBlocks: Integer;
-begin
-  Len := Length(AData);
-  NumBlocks := Len div BlockSize;
-  if Len mod BlockSize > 0 then
-    Inc(NumBlocks);
-  Result := NumBlocks * BlockSize;
 end;
 
 procedure TCryptCNGTest.Setup;
@@ -85,7 +71,7 @@ begin
   FCNGCrypt.Decrypt(CipherData, PlainData);
 
   Len := Length(PlainData);
-  Assert.AreEqual(Len, GetOutputSizeAES128(TEncoding.UTF8.GetBytes(PlainText)));
+  Assert.AreEqual(Len, Length(TEncoding.UTF8.GetBytes(PlainText)));
 end;
 
 procedure TCryptCNGTest.TestEncryptDecryptLongText;

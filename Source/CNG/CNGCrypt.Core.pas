@@ -179,6 +179,8 @@ begin
       if not Succeeded(Status) then
         raise Exception.Create('BCryptDecrypt error: ' + IntToStr(Status));
 
+      // Output size may have changed (this is due to the 16 byte block size of AES 128bit algorithm)
+      SetLength(Output, CbPlainText);
     finally
       Key.Free;
     end;
